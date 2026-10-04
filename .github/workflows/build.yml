@@ -1,0 +1,57 @@
+name: Build APK
+
+on:
+  push:
+    branches: [ "**" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Unpack project
+        run: |
+          unzip -o MusicCapsule.zip
+
+      - name: Patch OkHttp nullability
+        run: |
+          python3 -c "
+          import glob, re
+          for fpath in glob.glob('app/src/main/java/**/*.kt', recursive=True):
+              with open(fpath, 'r', encoding='utf-8') as f:
+                  content = f.read()
+              new_content = re.sub(r'\.body(\(\))?\.([a-zA-Z]+)', r'.body\1?.\2', content)
+              if new_content != content:
+                  with open(fpath, 'w', encoding='utf-8') as f:
+                      f.write(new_content)
+                  print(f'Patched: {fpath}')
+          "
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Generate wrapper if missing
+        run: |
+          if [ ! -f "gradlew" ]; then
+            gradle wrapper
+          fi
+          chmod +x gradlew
+
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug --stacktrace
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug
+          path: app/build/outputs/apk/debug/*.apk
+          retention-days: 7
