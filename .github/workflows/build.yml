@@ -1,4 +1,4 @@
-name: Build APK
+ name: Build APK
 
 on:
   push:
@@ -23,7 +23,7 @@ jobs:
           for fpath in glob.glob('app/src/main/java/**/*.kt', recursive=True):
               with open(fpath, 'r', encoding='utf-8') as f:
                   content = f.read()
-              new_content = re.sub(r'\.body(\(\))?\.([a-zA-Z]+)', r'.body\1?.\2', content)
+              new_content = re.sub(r'\.body(\(\))?(\?\.|\.)([a-zA-Z]+)', r'.body\1!!.\3', content)
               if new_content != content:
                   with open(fpath, 'w', encoding='utf-8') as f:
                       f.write(new_content)
